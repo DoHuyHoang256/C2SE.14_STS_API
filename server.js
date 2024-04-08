@@ -27,17 +27,25 @@ app.get('/api/users/email', (req, res) => {
     });
   });
   
-  // API endpoint to retrieve all information from users and account_role tables
-  app.get('/api/allInfo', (req, res) => {
-    pool.query('SELECT * FROM users', (error, result) => {
-      if (error) {
-        console.error('Error executing query:', error);
-        res.status(500).json({ error: 'Internal Server Error' });
-      } else {
-        res.json(result.rows);
-      }
+  app.get('/api/users/email/:email', (req, res) => {
+    const email = req.params.email;
+
+    // Truy vấn cơ sở dữ liệu để lấy thông tin của người dùng từ email
+    pool.query('SELECT * FROM users WHERE email = $1', [email], (error, result) => {
+        if (error) {
+            console.error('Lỗi thực thi truy vấn:', error);
+            res.status(500).json({ error: 'Lỗi máy chủ nội bộ' });
+        } else {
+            if (result.rows.length > 0) {
+                res.json(result.rows[0]);
+            } else {
+                res.status(404).json({ message: 'Không tìm thấy người dùng với email đã cho' });
+            }
+        }
     });
-  });
+});
+
+
   
   // API endpoint để lấy role_name từ role_id
   app.get('/api/roleName/:roleId', (req, res) => {
