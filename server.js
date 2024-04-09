@@ -31,7 +31,7 @@ app.get('/api/users/email', (req, res) => {
     const email = req.params.email;
 
     // Truy vấn cơ sở dữ liệu để lấy thông tin của người dùng từ email
-    pool.query('SELECT user_id, full_name, user_code, role, TO_CHAR(date_of_birth, \'YYYY-MM-DD\') AS date_of_birth, phone_number, address, email, gender, wallet FROM users WHERE email = $1', [email], (error, result) => {
+    pool.query('SELECT * FROM users WHERE email = $1', [email], (error, result) => {
         if (error) {
             console.error('Lỗi thực thi truy vấn:', error);
             res.status(500).json({ error: 'Lỗi máy chủ nội bộ' });
