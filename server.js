@@ -99,16 +99,16 @@ app.get('/api/users/email', (req, res) => {
       return res.status(400).json({ error: 'Yêu cầu không có dữ liệu' });
     }
   
-    const { full_name, user_code, date_of_birth, phone_number, address, email } = req.body;
+    const { full_name, user_code, date_of_birth, phone_number, address, email, role, gender, wallet } = req.body;
   
     // Check if all required fields are provided
-    if (!full_name || !user_code || !date_of_birth || !phone_number || !address || !email) {
-      return res.status(400).json({ error: 'Vui lòng cung cấp tất cả các trường bắt buộc: full_name, user_code, date_of_birth, phone_number, address, email' });
+    if (!full_name || !user_code || !date_of_birth || !phone_number || !address || !email || !role || !gender || !wallet) {
+      return res.status(400).json({ error: 'Vui lòng cung cấp tất cả các trường bắt buộc: full_name, user_code, date_of_birth, phone_number, address, email, role, gender, wallet' });
     }
   
     // Insert new user into the database without specifying user_id
-    pool.query('INSERT INTO users (full_name, user_code, date_of_birth, phone_number, address, email) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *', 
-      [full_name, user_code, date_of_birth, phone_number, address, email], 
+    pool.query('INSERT INTO users (full_name, user_code, date_of_birth, phone_number, address, email, role, gender, wallet) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *', 
+      [full_name, user_code, date_of_birth, phone_number, address, email, role, gender, wallet], 
       (error, result) => {
         if (error) {
           console.error('Lỗi thực thi truy vấn:', error);
@@ -118,7 +118,8 @@ app.get('/api/users/email', (req, res) => {
         }
       }
     );
-  });
+});
+
   
   // API endpoint để lấy thông tin của một user từ cơ sở dữ liệu dựa trên userId
   app.get('/api/users/:userId', (req, res) => {
@@ -167,7 +168,7 @@ app.get('/api/users/email', (req, res) => {
   
   // API endpoint to retrieve all transactions
   app.get('/api/transactions', (req, res) => {
-    pool.query('SELECT * FROM transaction_history', (error, result) => {
+    pool.query('SELECT * FROM transactionhistory', (error, result) => {
       if (error) {
         console.error('Error executing query:', error);
         res.status(500).json({ error: 'Internal Server Error' });
@@ -204,23 +205,6 @@ app.get('/api/users/email', (req, res) => {
   });
   
   
-  // API endpoint to retrieve transaction data by transaction_id
-  app.get('/api/transactions/:transaction_id', (req, res) => {
-    const transactionId = req.params.transaction_id;
-  
-    pool.query('SELECT * FROM transaction_history WHERE transaction_id = $1', [transactionId], (error, result) => {
-      if (error) {
-        console.error('Error executing query:', error);
-        res.status(500).json({ error: 'Internal Server Error' });
-      } else {
-        if (result.rows.length > 0) {
-          res.json(result.rows[0]);
-        } else {
-          res.status(404).json({ message: 'Transaction not found' });
-        }
-      }
-    });
-  });
 
 app.listen(3000);
 console.log('Server on port', 3000);
