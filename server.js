@@ -121,7 +121,7 @@ app.get('/api/users/email', (req, res) => {
 });
 
 app.get('/api/allInfo', (req, res) => {
-  db.query('SELECT * FROM users', (error, result) => {
+  pool.query('SELECT * FROM users', (error, result) => {
     if (error) {
       console.error('Error executing query:', error);
       res.status(500).json({ error: 'Internal Server Error' });
