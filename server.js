@@ -120,6 +120,16 @@ app.get('/api/users/email', (req, res) => {
     );
 });
 
+app.get('/api/allInfo', (req, res) => {
+  db.query('SELECT * FROM users', (error, result) => {
+    if (error) {
+      console.error('Error executing query:', error);
+      res.status(500).json({ error: 'Internal Server Error' });
+    } else {
+      res.json(result.rows);
+    }
+  });
+});
   
   // API endpoint để lấy thông tin của một user từ cơ sở dữ liệu dựa trên userId
   app.get('/api/users/:userId', (req, res) => {
