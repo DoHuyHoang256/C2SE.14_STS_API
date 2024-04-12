@@ -214,6 +214,34 @@ app.get('/api/allInfo', (req, res) => {
     });
   });
   
+  // API endpoint để thêm một transaction mới
+app.post('/api/transactions', (req, res) => {
+  // Check if req.body exists
+  if (!req.body) {
+      return res.status(400).json({ error: 'Yêu cầu không có dữ liệu' });
+  }
+
+  const { user_id, transaction_type, amount, tran_time } = req.body;
+
+  // Check if all required fields are provided
+  if (!user_id || !transaction_type || !amount || !tran_time) {
+      return res.status(400).json({ error: 'Vui lòng cung cấp tất cả các trường bắt buộc: user_id, transaction_type, amount, tran_time' });
+  }
+
+  // Insert new transaction into the database without specifying transaction_id
+  pool.query('INSERT INTO transactionhistory (user_id, transaction_type, amount, tran_time) VALUES ($1, $2, $3, $4) RETURNING *', 
+  [user_id, transaction_type, amount, tran_time], 
+  (error, result) => {
+    if (error) {
+      console.error('Lỗi thực thi truy vấn:', error);
+      return res.status(500).json({ error: 'Lỗi máy chủ nội bộ' });
+    } else {
+      res.status(201).json(result.rows[0]); 
+    }
+  }
+);
+});
+
   
 
 app.listen(3000);
