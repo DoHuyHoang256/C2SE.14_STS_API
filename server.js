@@ -242,6 +242,92 @@ app.post('/api/transactions', (req, res) => {
 );
 });
 
+// API endpoint để lấy tất cả dữ liệu từ bảng "location"
+app.get('/api/locations', (req, res) => {
+  pool.query('SELECT * FROM location', (error, result) => {
+    if (error) {
+      console.error('Error executing query:', error);
+      res.status(500).json({ error: 'Internal Server Error' });
+    } else {
+      res.json(result.rows);
+    }
+  });
+});
+
+// API endpoint để thêm một địa điểm mới
+app.post('/api/locations', (req, res) => {
+  // Check if req.body exists
+  if (!req.body) {
+    return res.status(400).json({ error: 'Yêu cầu không có dữ liệu' });
+  }
+
+  const { location_name } = req.body;
+
+  // Check if all required fields are provided
+  if (!location_name) {
+    return res.status(400).json({ error: 'Vui lòng cung cấp tên địa điểm' });
+  }
+
+  // Insert new location into the database without specifying location_id
+  pool.query('INSERT INTO location (location_name) VALUES ($1) RETURNING *', 
+    [location_name], 
+    (error, result) => {
+      if (error) {
+        console.error('Lỗi thực thi truy vấn:', error);
+        return res.status(500).json({ error: 'Lỗi máy chủ nội bộ' });
+      } else {
+        res.status(201).json(result.rows[0]); 
+      }
+    }
+  );
+});
+
+app.delete('/api/locations/:locationId', (req, res) => {
+  const locationId = req.params.locationId;
+
+  // Kiểm tra nếu locationId được cung cấp
+  if (!locationId) {
+      return res.status(400).json({ error: 'Vui lòng cung cấp locationId' });
+  }
+
+  // Thực hiện truy vấn SQL để xóa location từ bảng location dựa trên locationId
+  pool.query('DELETE FROM location WHERE location_id = $1', [locationId], (error, result) => {
+      if (error) {
+          console.error('Lỗi thực thi truy vấn:', error);
+          return res.status(500).json({ error: 'Lỗi máy chủ nội bộ' });
+      } else {
+          if (result.rowCount > 0) {
+              res.json({ message: 'Location đã được xóa thành công' });
+          } else {
+              res.status(404).json({ message: 'Không tìm thấy location' });
+          }
+      }
+  });
+});
+
+
+// API endpoint để lấy dữ liệu từ bảng "transaction" dựa trên location
+app.get('/api/transactions/:location', (req, res) => {
+  const location = req.params.location;
+
+  // Truy vấn cơ sở dữ liệu để lấy thông tin giao dịch từ bảng transaction dựa trên location
+  pool.query(`
+    SELECT 
+      *
+    FROM 
+      transactionhistory
+    WHERE 
+      location = $1
+  `, [location], (error, result) => {
+    if (error) {
+      console.error('Lỗi thực thi truy vấn:', error);
+      res.status(500).json({ error: 'Lỗi máy chủ nội bộ' });
+    } else {
+      res.json(result.rows);
+    }
+  });
+});
+
   
 
 app.listen(3000);
