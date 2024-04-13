@@ -305,28 +305,54 @@ app.delete('/api/locations/:locationId', (req, res) => {
   });
 });
 
+app.get('/api/transactions/count', async (req, res) => {
+  const { startDate, endDate, location } = req.query;
 
-app.get('/api/transactions/:location', (req, res) => {
-  const { startDate, endDate } = req.query;
-  const location = req.params.location;
+  // Khai báo mảng params
+  let params = [];
 
-  // Kiểm tra xem startDate, endDate và location có được cung cấp không
-  if (!startDate || !endDate || !location) {
-      return res.status(400).json({ error: 'Vui lòng cung cấp startDate, endDate và location' });
+  // Xây dựng câu truy vấn SQL dựa trên các tham số được cung cấp
+  let query = `
+    SELECT 
+      location,
+      DATE(tran_time) AS transaction_date, 
+      COUNT(*) AS total_transactions 
+    FROM 
+      transactionhistory
+    WHERE 
+      transaction_type = 2
+  `;
+
+  // Thêm điều kiện lọc theo khoảng thời gian nếu startDate và endDate được cung cấp
+  if (startDate && endDate) {
+    query += ` AND DATE(tran_time) BETWEEN $1 AND $2`;
+    params.push(startDate);
+    params.push(endDate);
   }
 
-  // Thực hiện truy vấn SQL để lấy giao dịch dựa trên tran_time và location
-  pool.query('SELECT * FROM transactionhistory WHERE tran_time BETWEEN $1 AND $2 AND location = $3', [startDate, endDate, location], (error, result) => {
-      if (error) {
-          console.error('Lỗi thực thi truy vấn:', error);
-          return res.status(500).json({ error: 'Lỗi máy chủ nội bộ' });
-      } else {
-          res.json(result.rows);
-      }
-  });
-});
+  // Thêm điều kiện lọc theo location nếu location được cung cấp
+  if (location) {
+    // Chuyển location từ string thành một mảng các giá trị
+    const locationIds = location.split(',');
+    // Tạo các placeholder cho location
+    const locationPlaceholders = locationIds.map((_, index) => `$${params.length + index + 1}`).join(',');
+    query += ` AND location IN (${locationPlaceholders})`;
+    // Thêm các giá trị location vào mảng params
+    locationIds.forEach(locationId => params.push(parseInt(locationId)));
+  }
 
-  
+  // Nhóm kết quả theo ngày và location
+  query += ` GROUP BY location, DATE(tran_time)`;
+
+  // Thực thi truy vấn
+  try {
+    const result = await pool.query(query, params);
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error executing query:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
 
 app.listen(3000);
 console.log('Server on port', 3000);
