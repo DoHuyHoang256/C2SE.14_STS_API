@@ -306,25 +306,23 @@ app.delete('/api/locations/:locationId', (req, res) => {
 });
 
 
-// API endpoint để lấy dữ liệu từ bảng "transaction" dựa trên location
 app.get('/api/transactions/:location', (req, res) => {
+  const { startDate, endDate } = req.query;
   const location = req.params.location;
 
-  // Truy vấn cơ sở dữ liệu để lấy thông tin giao dịch từ bảng transaction dựa trên location
-  pool.query(`
-    SELECT 
-      *
-    FROM 
-      transactionhistory
-    WHERE 
-      location = $1
-  `, [location], (error, result) => {
-    if (error) {
-      console.error('Lỗi thực thi truy vấn:', error);
-      res.status(500).json({ error: 'Lỗi máy chủ nội bộ' });
-    } else {
-      res.json(result.rows);
-    }
+  // Kiểm tra xem startDate, endDate và location có được cung cấp không
+  if (!startDate || !endDate || !location) {
+      return res.status(400).json({ error: 'Vui lòng cung cấp startDate, endDate và location' });
+  }
+
+  // Thực hiện truy vấn SQL để lấy giao dịch dựa trên tran_time và location
+  pool.query('SELECT * FROM transactionhistory WHERE tran_time BETWEEN $1 AND $2 AND location = $3', [startDate, endDate, location], (error, result) => {
+      if (error) {
+          console.error('Lỗi thực thi truy vấn:', error);
+          return res.status(500).json({ error: 'Lỗi máy chủ nội bộ' });
+      } else {
+          res.json(result.rows);
+      }
   });
 });
 
