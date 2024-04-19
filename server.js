@@ -322,28 +322,31 @@ app.post('/api/locations', (req, res) => {
   );
 });
 
-app.delete('/api/locations/:locationId', (req, res) => {
-  const locationId = req.params.locationId;
+// API endpoint để xóa các dòng từ bảng location có location_id trong mảng selectedLocations
+app.delete('/api/locations', (req, res) => {
+  const selectedLocations = req.body.selectedLocations; // Lấy mảng các location_id từ body của yêu cầu
 
-  // Kiểm tra nếu locationId được cung cấp
-  if (!locationId) {
-      return res.status(400).json({ error: 'Vui lòng cung cấp locationId' });
+  // Kiểm tra xem selectedLocations có tồn tại không
+  if (!selectedLocations || selectedLocations.length === 0) {
+      return res.status(400).json({ error: 'Không có location nào được chọn để xóa' });
   }
 
-  // Thực hiện truy vấn SQL để xóa location từ bảng location dựa trên locationId
-  pool.query('DELETE FROM location WHERE location_id = $1', [locationId], (error, result) => {
+  // Xây dựng câu truy vấn DELETE với điều kiện WHERE location_id IN (...)
+  const query = 'DELETE FROM location WHERE location_id IN (' + selectedLocations.join(',') + ')';
+
+  // Thực thi câu truy vấn DELETE
+  pool.query(query, (error, result) => {
       if (error) {
           console.error('Lỗi thực thi truy vấn:', error);
           return res.status(500).json({ error: 'Lỗi máy chủ nội bộ' });
       } else {
-          if (result.rowCount > 0) {
-              res.json({ message: 'Location đã được xóa thành công' });
-          } else {
-              res.status(404).json({ message: 'Không tìm thấy location' });
-          }
+          const rowCount = result.rowCount; // Số dòng bị ảnh hưởng bởi câu truy vấn DELETE
+          res.json({ message: `Đã xóa ${rowCount} location thành công` });
       }
   });
 });
+
+
 
 app.get('/api/transactions/count', async (req, res) => {
   const { startDate, endDate, location } = req.query;
