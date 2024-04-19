@@ -121,7 +121,11 @@ app.get('/api/users/email', (req, res) => {
 });
 
 app.get('/api/allInfo', (req, res) => {
-  pool.query('SELECT * FROM users', (error, result) => {
+  const page = req.query.page || 1; // Trang hiện tại, mặc định là 1 nếu không có tham số được cung cấp
+  const pageSize = req.query.pageSize || 10; // Kích thước trang, mặc định là 10 nếu không có tham số được cung cấp
+  const offset = (page - 1) * pageSize; // Số lượng bỏ qua, dựa trên trang hiện tại và kích thước trang
+
+  pool.query('SELECT * FROM users ORDER BY user_id LIMIT $1 OFFSET $2', [pageSize, offset], (error, result) => {
     if (error) {
       console.error('Error executing query:', error);
       res.status(500).json({ error: 'Internal Server Error' });
@@ -130,7 +134,9 @@ app.get('/api/allInfo', (req, res) => {
     }
   });
 });
-  
+
+
+
   // API endpoint để lấy thông tin của một user từ cơ sở dữ liệu dựa trên userId
   app.get('/api/users/:userId', (req, res) => {
     const userId = req.params.userId;
@@ -149,6 +155,40 @@ app.get('/api/allInfo', (req, res) => {
       }
     });
   });
+  
+  const removeDiacritics = (str) => {
+    return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  };
+  
+  app.get('/api/search', (req, res) => {
+    const searchTerm = req.query.searchTerm || ''; // Chuỗi tìm kiếm, mặc định là chuỗi trống nếu không có giá trị được cung cấp
+    const page = req.query.page || 1; // Trang hiện tại, mặc định là 1 nếu không có tham số được cung cấp
+    const pageSize = req.query.pageSize || 10; // Kích thước trang, mặc định là 10 nếu không có tham số được cung cấp
+    const offset = (page - 1) * pageSize; // Số lượng bỏ qua, dựa trên trang hiện tại và kích thước trang
+  
+    const query = `
+      SELECT * 
+      FROM users 
+      WHERE full_name ILIKE $1 OR user_code ILIKE $1 
+      ORDER BY user_id 
+      LIMIT $2 OFFSET $3
+    `;
+  
+    pool.query(
+      query,
+      [`%${searchTerm}%`, pageSize, offset],
+      (error, result) => {
+        if (error) {
+          console.error('Error executing query:', error);
+          res.status(500).json({ error: 'Internal Server Error' });
+        } else {
+          res.json(result.rows);
+        }
+      }
+    );
+  });
+  
+  
   
   
   // API endpoint to delete user by user_id
