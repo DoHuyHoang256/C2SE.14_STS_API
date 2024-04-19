@@ -169,7 +169,7 @@ app.get('/api/allInfo', (req, res) => {
     const query = `
       SELECT * 
       FROM users 
-      WHERE full_name ILIKE $1 OR user_code ILIKE $1 
+      WHERE full_name ILIKE $1 OR email ILIKE $1 
       ORDER BY user_id 
       LIMIT $2 OFFSET $3
     `;
