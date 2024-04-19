@@ -357,18 +357,20 @@ app.get('/api/transactions/count', async (req, res) => {
   // Xây dựng câu truy vấn SQL dựa trên các tham số được cung cấp
   let query = `
     SELECT 
-      location,
-      DATE(tran_time) AS transaction_date, 
+      l.location_name, -- Thay location bằng location_name
+      DATE(th.tran_time) AS transaction_date, 
       COUNT(*) AS total_transactions 
     FROM 
-      transactionhistory
+      transactionhistory th
+    INNER JOIN
+      location l ON th.location = l.location_id -- Join bảng location để lấy location_name
     WHERE 
-      transaction_type = 2
+      th.transaction_type = 2
   `;
 
   // Thêm điều kiện lọc theo khoảng thời gian nếu startDate và endDate được cung cấp
   if (startDate && endDate) {
-    query += ` AND DATE(tran_time) BETWEEN $1 AND $2`;
+    query += ` AND DATE(th.tran_time) BETWEEN $1 AND $2`;
     params.push(startDate);
     params.push(endDate);
   }
@@ -379,13 +381,13 @@ app.get('/api/transactions/count', async (req, res) => {
     const locationIds = location.split(',');
     // Tạo các placeholder cho location
     const locationPlaceholders = locationIds.map((_, index) => `$${params.length + index + 1}`).join(',');
-    query += ` AND location IN (${locationPlaceholders})`;
+    query += ` AND th.location IN (${locationPlaceholders})`;
     // Thêm các giá trị location vào mảng params
     locationIds.forEach(locationId => params.push(parseInt(locationId)));
   }
 
-  // Nhóm kết quả theo ngày và location
-  query += ` GROUP BY location, DATE(tran_time)`;
+  // Nhóm kết quả theo ngày và location_name
+  query += ` GROUP BY l.location_name, DATE(th.tran_time)`; // Nhóm kết quả theo location_name thay vì location_id
 
   // Thực thi truy vấn
   try {
@@ -396,6 +398,8 @@ app.get('/api/transactions/count', async (req, res) => {
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
+
 
 app.listen(3000);
 console.log('Server on port', 3000);
