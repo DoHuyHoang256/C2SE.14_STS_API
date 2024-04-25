@@ -482,6 +482,39 @@ app.get('/api/transaction-summary', (req, res) => {
   });
 });
 
+app.get('/api/total-amount-by-location', (req, res) => {
+  const { startDate, endDate } = req.query;
+
+  // Kiểm tra xem startDate và endDate có tồn tại không
+  if (!startDate || !endDate) {
+    return res.status(400).json({ error: 'Vui lòng cung cấp startDate và endDate' });
+  }
+
+  // Truy vấn cơ sở dữ liệu để lấy tổng số lượng amount theo từng location_name
+  const query = `
+    SELECT 
+      location.location_name,
+      SUM(transactionhistory.amount) AS total_amount
+    FROM 
+      transactionhistory
+    INNER JOIN 
+      location ON transactionhistory.location = location.location_id
+    WHERE 
+      DATE(transactionhistory.tran_time) BETWEEN $1 AND $2
+    GROUP BY 
+      location.location_name;
+  `;
+  
+  // Thực hiện truy vấn SQL với tham số startDate và endDate
+  pool.query(query, [startDate, endDate], (error, result) => {
+    if (error) {
+      console.error('Error executing query:', error);
+      res.status(500).json({ error: 'Internal Server Error' });
+    } else {
+      res.json(result.rows);
+    }
+  });
+});
 
 
 app.listen(3000);
