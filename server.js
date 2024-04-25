@@ -407,14 +407,70 @@ app.get('/api/checkincheckout', (req, res) => {
     return res.status(400).json({ error: 'Vui lòng cung cấp startDate và endDate' });
   }
 
-  // Truy vấn cơ sở dữ liệu để lấy thông tin từ bảng checkincheckout và transactionhistory
+  // Truy vấn cơ sở dữ liệu để lấy thông tin từ bảng checkincheckout, transactionhistory, location và users
   const query = `
-    SELECT cc.license_plate, cc.checkin_time, cc.checkout_time
-    FROM checkincheckout cc
-    INNER JOIN transactionhistory th ON cc.check_id = th.check_time
-    WHERE DATE(th.tran_time) BETWEEN $1 AND $2;
+    SELECT 
+      users.full_name,
+      cc.license_plate, 
+      cc.checkin_time, 
+      cc.checkout_time,
+      location.location_name
+    FROM 
+      checkincheckout cc
+    INNER JOIN 
+      transactionhistory th ON cc.check_id = th.check_time
+    INNER JOIN 
+      location ON th.location = location.location_id
+    INNER JOIN 
+      users ON th.user_id = users.user_id
+    WHERE 
+      DATE(th.tran_time) BETWEEN $1 AND $2;
   `;
   
+  // Thực hiện truy vấn SQL với tham số startDate và endDate
+  pool.query(query, [startDate, endDate], (error, result) => {
+    if (error) {
+      console.error('Error executing query:', error);
+      res.status(500).json({ error: 'Internal Server Error' });
+    } else {
+      res.json(result.rows);
+    }
+  });
+});
+
+
+app.get('/api/transaction-summary', (req, res) => {
+  const { startDate, endDate } = req.query;
+
+  // Kiểm tra xem startDate và endDate có tồn tại không
+  if (!startDate || !endDate) {
+    return res.status(400).json({ error: 'Vui lòng cung cấp startDate và endDate' });
+  }
+
+  // Truy vấn cơ sở dữ liệu để lấy thông tin từ các bảng
+  const query = `
+    SELECT 
+      users.full_name, 
+      checkincheckout.license_plate,
+      location.location_name,
+      CONCAT('+', SUM(transactionhistory.amount)) AS amount
+    FROM 
+      transactionhistory
+    INNER JOIN 
+      users ON transactionhistory.user_id = users.user_id
+    INNER JOIN 
+      checkincheckout ON transactionhistory.check_time = checkincheckout.check_id
+    INNER JOIN
+      location ON transactionhistory.location = location.location_id
+    WHERE 
+      transactionhistory.transaction_type = 2 AND 
+      DATE(transactionhistory.tran_time) BETWEEN $1 AND $2
+    GROUP BY 
+      users.full_name, 
+      checkincheckout.license_plate,
+      location.location_name;
+  `;
+
   // Thực hiện truy vấn SQL với tham số startDate và endDate
   pool.query(query, [startDate, endDate], (error, result) => {
     if (error) {
