@@ -516,6 +516,37 @@ app.get('/api/total-amount-by-location', (req, res) => {
   });
 });
 
+app.get('/api/user-info/:email', (req, res) => {
+  const { email } = req.params;
+
+  // Truy vấn cơ sở dữ liệu để lấy thông tin từ bảng users, role và gender dựa trên email
+  const query = `
+    SELECT 
+      users.*, 
+      role.role_name AS role, 
+      gender.gender_name AS gender
+    FROM 
+      users
+    LEFT JOIN 
+      role ON users.role = role.role_id
+    LEFT JOIN 
+      gender ON users.gender = gender.gender_id
+    WHERE 
+      email = $1;
+  `;
+  
+  // Thực hiện truy vấn SQL với tham số email
+  pool.query(query, [email], (error, result) => {
+    if (error) {
+      console.error('Error executing query:', error);
+      res.status(500).json({ error: 'Internal Server Error' });
+    } else {
+      res.json(result.rows);
+    }
+  });
+});
+
+
 
 app.listen(3000);
 console.log('Server on port', 3000);
