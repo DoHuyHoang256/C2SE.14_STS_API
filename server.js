@@ -399,6 +399,33 @@ app.get('/api/transactions/count', async (req, res) => {
   }
 });
 
+app.get('/api/checkincheckout', (req, res) => {
+  const { startDate, endDate } = req.query;
+
+  // Kiểm tra xem startDate và endDate có tồn tại không
+  if (!startDate || !endDate) {
+    return res.status(400).json({ error: 'Vui lòng cung cấp startDate và endDate' });
+  }
+
+  // Truy vấn cơ sở dữ liệu để lấy thông tin từ bảng checkincheckout và transactionhistory
+  const query = `
+    SELECT cc.license_plate, cc.checkin_time, cc.checkout_time
+    FROM checkincheckout cc
+    INNER JOIN transactionhistory th ON cc.check_id = th.check_time
+    WHERE DATE(th.tran_time) BETWEEN $1 AND $2;
+  `;
+  
+  // Thực hiện truy vấn SQL với tham số startDate và endDate
+  pool.query(query, [startDate, endDate], (error, result) => {
+    if (error) {
+      console.error('Error executing query:', error);
+      res.status(500).json({ error: 'Internal Server Error' });
+    } else {
+      res.json(result.rows);
+    }
+  });
+});
+
 
 
 app.listen(3000);
