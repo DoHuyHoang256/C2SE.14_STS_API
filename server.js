@@ -275,17 +275,17 @@ app.get('/api/allInfo', (req, res) => {
         return res.status(400).json({ error: 'Yêu cầu không có dữ liệu' });
     }
 
-    const { userId, amountDouble, formattedTranTime } = req.body;
+    const { user_id, amount, tran_time } = req.body;
     const transaction_type = 1; // Đặt transaction_type mặc định là 1
 
     // Check if all required fields are provided
-    if (!userId || !amountDouble || !formattedTranTime) {
+    if (!user_id|| !amount || !tran_time) {
         return res.status(400).json({ error: 'Vui lòng cung cấp tất cả các trường bắt buộc: user_id, amount, tran_time' });
     }
 
     // Insert new transaction into the database without specifying transaction_id
     pool.query('INSERT INTO transactionhistory (user_id, transaction_type, amount, tran_time) VALUES ($1, $2, $3, $4) RETURNING *', 
-    [userId, transaction_type, amountDouble, formattedTranTime], 
+    [user_id, transaction_type, amount, tran_time], 
     (error, result) => {
         if (error) {
             console.error('Lỗi thực thi truy vấn:', error);
