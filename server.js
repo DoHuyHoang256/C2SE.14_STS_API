@@ -244,9 +244,9 @@ app.get('/api/allInfo', (req, res) => {
             transactionhistory.amount,
             transactionhistory.tran_time,
             location.location_name AS location,
-            CASE WHEN transactionhistory.check_time IS NOT NULL THEN checkincheckout.license_plate END AS license_plate,
-            CASE WHEN transactionhistory.check_time IS NOT NULL THEN checkincheckout.checkin_time END AS checkin_time,
-            CASE WHEN transactionhistory.check_time IS NOT NULL THEN checkincheckout.checkout_time END AS checkout_time
+            CASE WHEN transactionhistory.check_time IS NOT NULL THEN checkincheckout.license_plate ELSE NULL END AS license_plate,
+            CASE WHEN transactionhistory.check_time IS NOT NULL THEN checkincheckout.checkin_time ELSE NULL END AS checkin_time,
+            CASE WHEN transactionhistory.check_time IS NOT NULL THEN checkincheckout.checkout_time ELSE NULL END AS checkout_time
         FROM 
             users
         INNER JOIN 
@@ -267,37 +267,45 @@ app.get('/api/allInfo', (req, res) => {
     });
 });
 
-
-
-
   
   // API endpoint để thêm một transaction mới
-app.post('/api/transactions', (req, res) => {
-  // Check if req.body exists
-  if (!req.body) {
-      return res.status(400).json({ error: 'Yêu cầu không có dữ liệu' });
-  }
-
-  const { user_id, transaction_type, amount, tran_time } = req.body;
-
-  // Check if all required fields are provided
-  if (!user_id || !transaction_type || !amount || !tran_time) {
-      return res.status(400).json({ error: 'Vui lòng cung cấp tất cả các trường bắt buộc: user_id, transaction_type, amount, tran_time' });
-  }
-
-  // Insert new transaction into the database without specifying transaction_id
-  pool.query('INSERT INTO transactionhistory (user_id, transaction_type, amount, tran_time) VALUES ($1, $2, $3, $4) RETURNING *', 
-  [user_id, transaction_type, amount, tran_time], 
-  (error, result) => {
-    if (error) {
-      console.error('Lỗi thực thi truy vấn:', error);
-      return res.status(500).json({ error: 'Lỗi máy chủ nội bộ' });
-    } else {
-      res.status(201).json(result.rows[0]); 
+  app.post('/api/deposit', (req, res) => {
+    // Check if req.body exists
+    if (!req.body) {
+        return res.status(400).json({ error: 'Yêu cầu không có dữ liệu' });
     }
-  }
-);
+
+    const { user_id, amountDouble, tranTime } = req.body;
+    const transaction_type = 1; // Đặt transaction_type mặc định là 1
+
+    // Check if all required fields are provided
+    if (!user_id || !amountDouble || !tranTime) {
+        return res.status(400).json({ error: 'Vui lòng cung cấp tất cả các trường bắt buộc: user_id, amount, tran_time' });
+    }
+
+    // Insert new transaction into the database without specifying transaction_id
+    pool.query('INSERT INTO transactionhistory (user_id, transaction_type, amount, tran_time) VALUES ($1, $2, $3, $4) RETURNING *', 
+    [user_id, transaction_type, amountDouble, tranTime], 
+    (error, result) => {
+        if (error) {
+            console.error('Lỗi thực thi truy vấn:', error);
+            return res.status(500).json({ error: 'Lỗi máy chủ nội bộ' });
+        } else {
+            // Cộng số tiền amount vào wallet trong bảng users
+            pool.query('UPDATE users SET wallet = wallet + $1 WHERE user_id = $2', 
+            [amount, user_id], 
+            (error, result) => {
+                if (error) {
+                    console.error('Lỗi thực thi truy vấn:', error);
+                    return res.status(500).json({ error: 'Lỗi máy chủ nội bộ' });
+                } else {
+                    res.status(201).json(result.rows[0]);
+                }
+            });
+        }
+    });
 });
+
 
 // API endpoint để lấy tất cả dữ liệu từ bảng "location"
 app.get('/api/locations', (req, res) => {
