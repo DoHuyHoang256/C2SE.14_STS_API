@@ -244,9 +244,9 @@ app.get('/api/allInfo', (req, res) => {
             transactionhistory.amount,
             transactionhistory.tran_time,
             location.location_name AS location,
-            checkincheckout.license_plate,
-            checkincheckout.checkin_time,
-            checkincheckout.checkout_time
+            CASE WHEN transactionhistory.check_time IS NOT NULL THEN checkincheckout.license_plate END AS license_plate,
+            CASE WHEN transactionhistory.check_time IS NOT NULL THEN checkincheckout.checkin_time END AS checkin_time,
+            CASE WHEN transactionhistory.check_time IS NOT NULL THEN checkincheckout.checkout_time END AS checkout_time
         FROM 
             users
         INNER JOIN 
@@ -257,7 +257,6 @@ app.get('/api/allInfo', (req, res) => {
             checkincheckout ON transactionhistory.check_time = checkincheckout.check_id
         WHERE 
             users.user_id = $1
-            AND transactionhistory.check_time IS NOT NULL
     `, [userId], (error, result) => {
         if (error) {
             console.error('Error executing query:', error);
@@ -267,6 +266,9 @@ app.get('/api/allInfo', (req, res) => {
         }
     });
 });
+
+
+
 
   
   // API endpoint để thêm một transaction mới
