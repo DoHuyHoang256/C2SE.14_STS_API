@@ -277,6 +277,7 @@ app.get('/api/allInfo', (req, res) => {
 
     const { user_id, amount, tran_time } = req.body;
     const transaction_type = 1; // Đặt transaction_type mặc định là 1
+    const location = 1;
 
     // Check if all required fields are provided
     if (!user_id|| !amount || !tran_time) {
@@ -284,8 +285,8 @@ app.get('/api/allInfo', (req, res) => {
     }
 
     // Insert new transaction into the database without specifying transaction_id
-    pool.query('INSERT INTO transactionhistory (user_id, transaction_type, amount, tran_time) VALUES ($1, $2, $3, $4) RETURNING *', 
-    [user_id, transaction_type, amount, tran_time], 
+    pool.query('INSERT INTO transactionhistory (user_id, transaction_type, amount, tran_time, location) VALUES ($1, $2, $3, $4, $5) RETURNING *', 
+    [user_id, transaction_type, amount, tran_time, location], 
     (error, result) => {
         if (error) {
             console.error('Lỗi thực thi truy vấn:', error);
