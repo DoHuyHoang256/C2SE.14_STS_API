@@ -585,19 +585,26 @@ app.get('/api/email', (req, res) => {
 });
 
 // API endpoint để cập nhật thông tin của một địa điểm
-app.put('/api/locations/:locationId', (req, res) => {
+app.patch('/api/locations/:locationId', (req, res) => {
   const locationId = req.params.locationId;
   const { name, account, cost, status } = req.body;
 
   // Kiểm tra xem tất cả các trường bắt buộc đã được cung cấp chưa
-  if (!name || !account || !cost || !status) {
-    return res.status(400).json({ error: 'Vui lòng cung cấp tất cả các trường bắt buộc: name, account, cost, status' });
+  if (!name && !account && !cost && typeof status !== 'boolean') {
+    return res.status(400).json({ error: 'Vui lòng cung cấp ít nhất một trường để cập nhật: name, account, cost, status' });
   }
+
+  // Tạo object chứa các trường cần cập nhật
+  const fieldsToUpdate = {};
+  if (name) fieldsToUpdate.location_name = name;
+  if (account) fieldsToUpdate.user_id = account;
+  if (cost) fieldsToUpdate.cost = cost;
+  if (typeof status === 'boolean') fieldsToUpdate.status = status;
 
   // Tiến hành cập nhật thông tin của địa điểm trong cơ sở dữ liệu
   pool.query(
-    'UPDATE location SET location_name = $1, user_id = $2, cost = $3, status = $4 WHERE location_id = $5 RETURNING *',
-    [name, account, cost, status, locationId],
+    `UPDATE location SET ${Object.keys(fieldsToUpdate).map((key, index) => `${key} = $${index + 1}`).join(', ')} WHERE location_id = $${Object.keys(fieldsToUpdate).length + 1} RETURNING *`,
+    [...Object.values(fieldsToUpdate), locationId],
     (error, result) => {
       if (error) {
         console.error('Lỗi thực thi truy vấn:', error);
@@ -612,8 +619,6 @@ app.put('/api/locations/:locationId', (req, res) => {
     }
   );
 });
-
-
 
 app.listen(3000);
 console.log('Server on port', 3000);
