@@ -310,7 +310,7 @@ app.get('/api/allInfo', (req, res) => {
 
 // API endpoint để lấy tất cả dữ liệu từ bảng "location"
 app.get('/api/locations', (req, res) => {
-  pool.query('SELECT location.*, users.full_name, CASE WHEN location.status = true THEN \'Đang hoạt động\' ELSE \'Ngưng hoạt động\' END AS status_text FROM location INNER JOIN users ON location.user_id = users.user_id', (error, result) => {
+  pool.query('SELECT location.*, users.email, CASE WHEN location.status = true THEN \'Đang hoạt động\' ELSE \'Ngưng hoạt động\' END AS status_text FROM location INNER JOIN users ON location.user_id = users.user_id', (error, result) => {
     if (error) {
       console.error('Error executing query:', error);
       res.status(500).json({ error: 'Internal Server Error' });
