@@ -572,6 +572,17 @@ app.get('/api/user-info/:email', (req, res) => {
   });
 });
 
+app.get('/api/email', (req, res) => {
+  pool.query('SELECT user_id, email FROM users', (error, result) => {
+      if (error) {
+          console.error('Error executing query:', error);
+          res.status(500).json({ error: 'Internal Server Error' });
+      } else {
+          res.json(result.rows);
+      }
+  });
+});
+
 
 
 app.listen(3000);
