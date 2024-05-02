@@ -572,8 +572,9 @@ app.get('/api/user-info/:email', (req, res) => {
   });
 });
 
+// Route để lấy tất cả user_id và email từ bảng users với điều kiện role = 1
 app.get('/api/email', (req, res) => {
-  pool.query('SELECT user_id, email FROM users', (error, result) => {
+  pool.query('SELECT user_id, email FROM users WHERE role = 1', (error, result) => {
       if (error) {
           console.error('Error executing query:', error);
           res.status(500).json({ error: 'Internal Server Error' });
@@ -582,6 +583,7 @@ app.get('/api/email', (req, res) => {
       }
   });
 });
+
 
 
 
