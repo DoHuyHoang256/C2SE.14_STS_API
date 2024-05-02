@@ -584,6 +584,34 @@ app.get('/api/email', (req, res) => {
   });
 });
 
+// API endpoint để cập nhật thông tin của một địa điểm
+app.put('/api/locations/:locationId', (req, res) => {
+  const locationId = req.params.locationId;
+  const { name, account, cost, status } = req.body;
+
+  // Kiểm tra xem tất cả các trường bắt buộc đã được cung cấp chưa
+  if (!name || !account || !cost || !status) {
+    return res.status(400).json({ error: 'Vui lòng cung cấp tất cả các trường bắt buộc: name, account, cost, status' });
+  }
+
+  // Tiến hành cập nhật thông tin của địa điểm trong cơ sở dữ liệu
+  pool.query(
+    'UPDATE location SET location_name = $1, user_id = $2, cost = $3, status = $4 WHERE location_id = $5 RETURNING *',
+    [name, account, cost, status, locationId],
+    (error, result) => {
+      if (error) {
+        console.error('Lỗi thực thi truy vấn:', error);
+        return res.status(500).json({ error: 'Lỗi máy chủ nội bộ' });
+      } else {
+        if (result.rows.length > 0) {
+          res.json(result.rows[0]); // Trả về thông tin của địa điểm sau khi cập nhật thành công
+        } else {
+          res.status(404).json({ message: 'Không tìm thấy địa điểm với location_id đã cho' });
+        }
+      }
+    }
+  );
+});
 
 
 
