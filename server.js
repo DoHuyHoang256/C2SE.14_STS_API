@@ -324,29 +324,38 @@ app.get('/api/locations', (req, res) => {
 app.post('/api/locations', (req, res) => {
   // Check if req.body exists
   if (!req.body) {
-    return res.status(400).json({ error: 'Yêu cầu không có dữ liệu' });
+      return res.status(400).json({ error: 'Yêu cầu không có dữ liệu' });
   }
 
-  const { location_name } = req.body;
+  const { name, account, cost, note } = req.body;
 
   // Check if all required fields are provided
-  if (!location_name) {
-    return res.status(400).json({ error: 'Vui lòng cung cấp tên địa điểm' });
+  if (!name || !account || !cost) {
+      return res.status(400).json({ error: 'Vui lòng cung cấp đầy đủ thông tin' });
   }
 
-  // Insert new location into the database without specifying location_id
-  pool.query('INSERT INTO location (location_name) VALUES ($1) RETURNING *', 
-    [location_name], 
-    (error, result) => {
-      if (error) {
-        console.error('Lỗi thực thi truy vấn:', error);
-        return res.status(500).json({ error: 'Lỗi máy chủ nội bộ' });
-      } else {
-        res.status(201).json(result.rows[0]); 
+  let noteValue = note; // Initialize noteValue with the provided note
+
+  // If note is empty or undefined, set it to null
+  if (!noteValue) {
+      noteValue = null;
+  }
+
+  // Insert new location into the database
+  pool.query(
+      'INSERT INTO location (location_name, status, user_id, cost, note) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+      [name, true, account, cost, noteValue], // Use noteValue for the note field
+      (error, result) => {
+          if (error) {
+              console.error('Lỗi thực thi truy vấn:', error);
+              return res.status(500).json({ error: 'Lỗi máy chủ nội bộ' });
+          } else {
+              res.status(201).json(result.rows[0]);
+          }
       }
-    }
   );
 });
+
 
 // API endpoint để xóa các dòng từ bảng location có location_id trong mảng selectedLocations
 app.delete('/api/locations', (req, res) => {
