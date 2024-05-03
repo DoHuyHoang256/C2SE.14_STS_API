@@ -587,10 +587,10 @@ app.get('/api/email', (req, res) => {
 // API endpoint để cập nhật thông tin của một địa điểm
 app.patch('/api/locations/:locationId', (req, res) => {
   const locationId = req.params.locationId;
-  const { name, account, cost, status } = req.body;
+  const { name, account, cost, status, note } = req.body;
 
   // Kiểm tra xem tất cả các trường bắt buộc đã được cung cấp chưa
-  if (!name && !account && !cost && typeof status !== 'boolean') {
+  if (!name && !account && !cost && typeof status !== 'boolean' && !note) {
     return res.status(400).json({ error: 'Vui lòng cung cấp ít nhất một trường để cập nhật: name, account, cost, status' });
   }
 
