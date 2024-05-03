@@ -600,6 +600,7 @@ app.patch('/api/locations/:locationId', (req, res) => {
   if (account) fieldsToUpdate.user_id = account;
   if (cost) fieldsToUpdate.cost = cost;
   if (typeof status === 'boolean') fieldsToUpdate.status = status;
+  if (note) fieldsToUpdate.note = note;
 
   // Tiến hành cập nhật thông tin của địa điểm trong cơ sở dữ liệu
   pool.query(
