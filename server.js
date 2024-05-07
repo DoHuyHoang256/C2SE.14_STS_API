@@ -99,16 +99,16 @@ app.get('/api/users/email', (req, res) => {
       return res.status(400).json({ error: 'Yêu cầu không có dữ liệu' });
     }
   
-    const { full_name, user_code, date_of_birth, phone_number, address, email, role, gender, wallet } = req.body;
+    const { full_name, user_code, date_of_birth, phone_number, address, email, role, gender} = req.body;
   
     // Check if all required fields are provided
-    if (!full_name || !user_code || !date_of_birth || !phone_number || !address || !email || !role || !gender || !wallet) {
-      return res.status(400).json({ error: 'Vui lòng cung cấp tất cả các trường bắt buộc: full_name, user_code, date_of_birth, phone_number, address, email, role, gender, wallet' });
+    if (!full_name || !user_code || !date_of_birth || !phone_number || !address || !email || !role || !gender ) {
+      return res.status(400).json({ error: 'Vui lòng cung cấp tất cả các trường bắt buộc: full_name, user_code, date_of_birth, phone_number, address, email, role, gender' });
     }
   
     // Insert new user into the database without specifying user_id
     pool.query('INSERT INTO users (full_name, user_code, date_of_birth, phone_number, address, email, role, gender, wallet) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *', 
-      [full_name, user_code, date_of_birth, phone_number, address, email, role, gender, wallet], 
+      [full_name, user_code, date_of_birth, phone_number, address, email, role, gender, 0], 
       (error, result) => {
         if (error) {
           console.error('Lỗi thực thi truy vấn:', error);
