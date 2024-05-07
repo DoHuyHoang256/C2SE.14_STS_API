@@ -384,7 +384,7 @@ app.delete('/api/locations', (req, res) => {
 
 
 app.get('/api/transactions/count', async (req, res) => {
-  const { startDate, endDate, location } = req.query;
+  const { startDate, endDate } = req.query;
 
   // Khai báo mảng params
   let params = [];
@@ -392,13 +392,13 @@ app.get('/api/transactions/count', async (req, res) => {
   // Xây dựng câu truy vấn SQL dựa trên các tham số được cung cấp
   let query = `
     SELECT 
-      l.location_name, -- Thay location bằng location_name
+      l.location_name,
       DATE(th.tran_time) AS transaction_date, 
       COUNT(*) AS total_transactions 
     FROM 
       transactionhistory th
     INNER JOIN
-      location l ON th.location = l.location_id -- Join bảng location để lấy location_name
+      location l ON th.location = l.location_id
     WHERE 
       th.transaction_type = 2
   `;
@@ -410,19 +410,8 @@ app.get('/api/transactions/count', async (req, res) => {
     params.push(endDate);
   }
 
-  // Thêm điều kiện lọc theo location nếu location được cung cấp
-  if (location) {
-    // Chuyển location từ string thành một mảng các giá trị
-    const locationIds = location.split(',');
-    // Tạo các placeholder cho location
-    const locationPlaceholders = locationIds.map((_, index) => `$${params.length + index + 1}`).join(',');
-    query += ` AND th.location IN (${locationPlaceholders})`;
-    // Thêm các giá trị location vào mảng params
-    locationIds.forEach(locationId => params.push(parseInt(locationId)));
-  }
-
   // Nhóm kết quả theo ngày và location_name
-  query += ` GROUP BY l.location_name, DATE(th.tran_time)`; // Nhóm kết quả theo location_name thay vì location_id
+  query += ` GROUP BY l.location_name, DATE(th.tran_time)`;
 
   // Thực thi truy vấn
   try {
@@ -433,6 +422,7 @@ app.get('/api/transactions/count', async (req, res) => {
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
 
 app.get('/api/checkincheckout', (req, res) => {
   const { startDate, endDate } = req.query;
