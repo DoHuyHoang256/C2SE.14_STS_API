@@ -733,7 +733,45 @@ app.get('/api/users/token/:user_id', (req, res) => {
   });
 });
 
+// API endpoint để cập nhật thông tin của một người dùng
+app.patch('/api/users/:userId', (req, res) => {
+  const userId = req.params.userId;
+  const { full_name, email, date_of_birth, user_code, phone_number, gender, address, role } = req.body;
 
+  // Kiểm tra xem tất cả các trường bắt buộc đã được cung cấp chưa
+  if (!full_name && !email && !date_of_birth && !user_code && !phone_number && !gender && !address && !role) {
+    return res.status(400).json({ error: 'Vui lòng cung cấp ít nhất một trường để cập nhật' });
+  }
+
+  // Tạo object chứa các trường cần cập nhật
+  const fieldsToUpdate = {};
+  if (full_name) fieldsToUpdate.full_name = full_name;
+  if (email) fieldsToUpdate.email = email;
+  if (date_of_birth) fieldsToUpdate.date_of_birth = date_of_birth;
+  if (user_code) fieldsToUpdate.user_code = user_code;
+  if (phone_number) fieldsToUpdate.phone_number = phone_number;
+  if (gender) fieldsToUpdate.gender = gender;
+  if (address) fieldsToUpdate.address = address;
+  if (role) fieldsToUpdate.role = role;
+
+  // Tiến hành cập nhật thông tin của người dùng trong cơ sở dữ liệu
+  pool.query(
+    `UPDATE users SET ${Object.keys(fieldsToUpdate).map((key, index) => `${key} = $${index + 1}`).join(', ')} WHERE user_id = $${Object.keys(fieldsToUpdate).length + 1} RETURNING *`,
+    [...Object.values(fieldsToUpdate), userId],
+    (error, result) => {
+      if (error) {
+        console.error('Lỗi thực thi truy vấn:', error);
+        return res.status(500).json({ error: 'Lỗi máy chủ nội bộ' });
+      } else {
+        if (result.rows.length > 0) {
+          res.json(result.rows[0]); // Trả về thông tin của người dùng sau khi cập nhật thành công
+        } else {
+          res.status(404).json({ message: 'Không tìm thấy người dùng với user_id đã cho' });
+        }
+      }
+    }
+  );
+});
 
 
 app.listen(3000);
