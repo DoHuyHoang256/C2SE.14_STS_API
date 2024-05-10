@@ -651,6 +651,31 @@ app.get('/api/emaillocation', (req, res) => {
   });
 });
 
+app.get('/api/users/token/:user_id', (req, res) => {
+  const { user_id } = req.params;
+
+  // Truy vấn SQL để lấy token từ bảng users dựa trên user_id
+  const query = `
+    SELECT token
+    FROM users
+    WHERE user_id = $1;
+  `;
+  
+  pool.query(query, [user_id], (error, result) => {
+      if (error) {
+          console.error('Error executing query:', error);
+          res.status(500).json({ error: 'Internal Server Error' });
+      } else {
+          if (result.rows.length === 0) {
+              res.status(404).json({ error: 'User not found' });
+          } else {
+              const token = result.rows[0].token;
+              res.json({ token });
+          }
+      }
+  });
+});
+
 
 
 
