@@ -633,5 +633,26 @@ app.patch('/api/locations/:locationId', (req, res) => {
   );
 });
 
+app.get('/api/emaillocation', (req, res) => {
+  // Truy vấn SQL để lấy email, location_id và location_name từ các bảng users và location
+  const query = `
+      SELECT u.email, l.location_id, l.location_name
+      FROM users u
+      INNER JOIN location l ON u.user_id = l.user_id;
+  `;
+
+  pool.query(query, (error, result) => {
+      if (error) {
+          console.error('Error executing query:', error);
+          res.status(500).json({ error: 'Internal Server Error' });
+      } else {
+          res.json(result.rows);
+      }
+  });
+});
+
+
+
+
 app.listen(3000);
 console.log('Server on port', 3000);
