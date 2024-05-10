@@ -39,6 +39,18 @@ app.get('/api/users/email', (req, res) => {
     });
 });
 
+app.get('/api/users/emailAdmin', (req, res) => {
+  pool.query('SELECT email FROM users WHERE role = 1', (error, result) => {
+    if (error) {
+      console.error('Error executing query:', error);
+      res.status(500).json({ error: 'Internal Server Error' });
+    } else {
+      const emails = result.rows.map(row => row.email);
+      res.json(emails);
+    }
+  });
+});
+
   
   app.get('/api/users/email/:email', (req, res) => {
     const email = req.params.email;
