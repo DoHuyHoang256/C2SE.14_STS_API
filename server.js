@@ -548,6 +548,7 @@ app.get('/api/transaction-summary', (req, res) => {
       users.full_name, 
       checkincheckout.license_plate,
       location.location_name,
+      transactionhistory.tran_time,
       SUM(transactionhistory.amount) AS amount
     FROM 
       transactionhistory
@@ -563,7 +564,8 @@ app.get('/api/transaction-summary', (req, res) => {
     GROUP BY 
       users.full_name, 
       checkincheckout.license_plate,
-      location.location_name;
+      location.location_name,
+      transactionhistory.tran_time;
   `;
 
   // Thực hiện truy vấn SQL với tham số startDate và endDate
