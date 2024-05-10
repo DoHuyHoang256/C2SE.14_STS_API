@@ -612,19 +612,19 @@ app.get('/api/total-amount-by-location', (req, res) => {
       res.status(500).json({ error: 'Internal Server Error' });
     } else {
       // Xử lý kết quả trả về từ cơ sở dữ liệu
-      const formattedResult = {};
+      const formattedResult = [];
       result.rows.forEach(row => {
         const { location_name, transaction_date, total_amount } = row;
-        if (!formattedResult[location_name]) {
-          formattedResult[location_name] = [];
-        }
-        formattedResult[location_name].push({ date: transaction_date, total: total_amount });
+        formattedResult.push({
+          location_name,
+          date: transaction_date,
+          total: total_amount
+        });
       });
       res.json(formattedResult);
     }
   });
 });
-
 
 app.get('/api/user-info/:email', (req, res) => {
   const { email } = req.params;
