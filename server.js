@@ -109,29 +109,44 @@ app.get('/api/users/email', (req, res) => {
   app.post('/api/users', (req, res) => {
     // Check if req.body exists
     if (!req.body) {
-      return res.status(400).json({ error: 'Yêu cầu không có dữ liệu' });
+        return res.status(400).json({ error: 'Yêu cầu không có dữ liệu' });
     }
-  
-    const { full_name, user_code, date_of_birth, phone_number, address, email, role, gender} = req.body;
-  
-    // Check if all required fields are provided
-    if (!full_name || !user_code || !date_of_birth || !phone_number || !address || !email || !role || !gender ) {
-      return res.status(400).json({ error: 'Vui lòng cung cấp tất cả các trường bắt buộc: full_name, user_code, date_of_birth, phone_number, address, email, role, gender' });
+
+    const { full_name, email, gender, phone_number, address } = req.body;
+
+    // Kiểm tra xem tất cả các trường bắt buộc đã được cung cấp chưa
+    if (!full_name || !email || !gender || !phone_number || !address) {
+        return res.status(400).json({ error: 'Vui lòng cung cấp tất cả các trường bắt buộc: full_name, email, gender, phone_number, address' });
     }
-  
-    // Insert new user into the database without specifying user_id
-    pool.query('INSERT INTO users (full_name, user_code, date_of_birth, phone_number, address, email, role, gender, wallet) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *', 
-      [full_name, user_code, date_of_birth, phone_number, address, email, role, gender, 0], 
-      (error, result) => {
-        if (error) {
-          console.error('Lỗi thực thi truy vấn:', error);
-          return res.status(500).json({ error: 'Lỗi máy chủ nội bộ' });
-        } else {
-          res.status(201).json(result.rows[0]); 
+
+    // Tạo token ngẫu nhiên
+    const token = generateRandomToken();
+
+    // Chèn người dùng mới vào cơ sở dữ liệu mà không chỉ định user_id
+    pool.query('INSERT INTO users (full_name, email, gender, phone_number, address, role, wallet, token) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
+        [full_name, email, gender, phone_number, address, 3, 0, token],
+        (error, result) => {
+            if (error) {
+                console.error('Lỗi thực thi truy vấn:', error);
+                return res.status(500).json({ error: 'Lỗi máy chủ nội bộ' });
+            } else {
+                res.status(201).json(result.rows[0]);
+            }
         }
-      }
     );
 });
+
+// Hàm tạo token ngẫu nhiên
+function generateRandomToken() {
+    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    const length = 8;
+    let token = '';
+    for (let i = 0; i < length; i++) {
+        token += characters.charAt(Math.floor(Math.random() * characters.length));
+    }
+    return token;
+}
+
 
 app.get('/api/allInfo', (req, res) => {
   const page = req.query.page || 1; // Trang hiện tại, mặc định là 1 nếu không có tham số được cung cấp
