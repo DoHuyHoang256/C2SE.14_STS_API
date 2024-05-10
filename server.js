@@ -148,6 +148,36 @@ app.get('/api/users/emailAdmin', (req, res) => {
     );
 });
 
+app.post('/api/usersAdmin', (req, res) => {
+  // Check if req.body exists
+  if (!req.body) {
+      return res.status(400).json({ error: 'Yêu cầu không có dữ liệu' });
+  }
+
+  const { full_name, email, gender, phone_number, address, role } = req.body;
+
+  // Kiểm tra xem tất cả các trường bắt buộc đã được cung cấp chưa
+  if (!full_name || !email || !gender || !phone_number || !address || !role ) {
+      return res.status(400).json({ error: 'Vui lòng cung cấp tất cả các trường bắt buộc: full_name, email, gender, phone_number, address' });
+  }
+
+  // Tạo token ngẫu nhiên
+  const token = generateRandomToken();
+
+  // Chèn người dùng mới vào cơ sở dữ liệu mà không chỉ định user_id
+  pool.query('INSERT INTO users (full_name, email, gender, phone_number, address, role, wallet, token) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
+      [full_name, email, gender, phone_number, address, role, 0, token],
+      (error, result) => {
+          if (error) {
+              console.error('Lỗi thực thi truy vấn:', error);
+              return res.status(500).json({ error: 'Lỗi máy chủ nội bộ' });
+          } else {
+              res.status(201).json(result.rows[0]);
+          }
+      }
+  );
+});
+
 // Hàm tạo token ngẫu nhiên
 function generateRandomToken() {
     const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
