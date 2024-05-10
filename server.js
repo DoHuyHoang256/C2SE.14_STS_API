@@ -585,10 +585,11 @@ app.get('/api/total-amount-by-location', (req, res) => {
     return res.status(400).json({ error: 'Vui lòng cung cấp startDate và endDate' });
   }
 
-  // Truy vấn cơ sở dữ liệu để lấy tổng số lượng amount theo từng location_name
+  // Truy vấn cơ sở dữ liệu để lấy tổng số lượng amount theo từng location_name và ngày
   const query = `
     SELECT 
       location.location_name,
+      DATE(transactionhistory.tran_time) AS transaction_date,
       SUM(transactionhistory.amount) AS total_amount
     FROM 
       transactionhistory
@@ -597,7 +598,9 @@ app.get('/api/total-amount-by-location', (req, res) => {
     WHERE 
       DATE(transactionhistory.tran_time) BETWEEN $1 AND $2
     GROUP BY 
-      location.location_name;
+      location.location_name, DATE(transactionhistory.tran_time)
+    ORDER BY 
+      location.location_name, DATE(transactionhistory.tran_time);
   `;
   
   // Thực hiện truy vấn SQL với tham số startDate và endDate
@@ -606,10 +609,20 @@ app.get('/api/total-amount-by-location', (req, res) => {
       console.error('Error executing query:', error);
       res.status(500).json({ error: 'Internal Server Error' });
     } else {
-      res.json(result.rows);
+      // Xử lý kết quả trả về từ cơ sở dữ liệu
+      const formattedResult = {};
+      result.rows.forEach(row => {
+        const { location_name, transaction_date, total_amount } = row;
+        if (!formattedResult[location_name]) {
+          formattedResult[location_name] = [];
+        }
+        formattedResult[location_name].push({ date: transaction_date, total: total_amount });
+      });
+      res.json(formattedResult);
     }
   });
 });
+
 
 app.get('/api/user-info/:email', (req, res) => {
   const { email } = req.params;
