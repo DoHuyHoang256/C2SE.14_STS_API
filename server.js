@@ -478,7 +478,7 @@ app.get('/api/transaction-summary', (req, res) => {
       users.full_name, 
       checkincheckout.license_plate,
       location.location_name,
-      CONCAT('+', SUM(transactionhistory.amount)) AS amount
+      SUM(transactionhistory.amount) AS amount
     FROM 
       transactionhistory
     INNER JOIN 
