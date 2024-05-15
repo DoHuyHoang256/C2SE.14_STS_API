@@ -2,6 +2,7 @@ const express = require('express');
 const { config } = require('dotenv');
 const pg = require('pg');
 const cors = require('cors');
+const moment = require('moment-timezone');
 
 const app = express();
 
@@ -788,25 +789,30 @@ app.patch('/api/users/:userId', (req, res) => {
   );
 });
 
-app.post('/api/checkin', (req, res) => {
-  const { licensePlate } = req.body;
 
-  // Kiểm tra xem licensePlate có tồn tại không
-  if (!licensePlate) {
-    return res.status(400).json({ error: 'Vui lòng cung cấp licensePlate' });
+
+app.post('/api/checkin', (req, res) => {
+  const { licensePlate, user_id } = req.body;
+
+  // Kiểm tra xem licensePlate và user_id có tồn tại không
+  if (!licensePlate || !user_id) {
+    return res.status(400).json({ error: 'Vui lòng cung cấp licensePlate và user_id' });
   }
 
-  // Lấy thời gian hiện tại
-  const checkinTime = new Date();
+  // Lấy thời gian hiện tại ở Việt Nam
+  const checkinTime = moment().tz('Asia/Ho_Chi_Minh').format('YYYY-MM-DD HH:mm:ss');
+  
+  // Đặt giá trị mặc định cho status
+  const status = false;
 
   // Truy vấn SQL để thêm sự kiện checkin vào bảng checkincheckout
   const query = `
-    INSERT INTO checkincheckout (license_plate, checkin_time)
-    VALUES ($1, $2)
+    INSERT INTO checkincheckout (license_plate, user_id, checkin_time, status)
+    VALUES ($1, $2, $3, $4)
   `;
 
-  // Thực hiện truy vấn SQL với licensePlate và checkinTime
-  pool.query(query, [licensePlate, checkinTime], (error, result) => {
+  // Thực hiện truy vấn SQL với licensePlate, user_id, checkinTime và status
+  pool.query(query, [licensePlate, user_id, checkinTime, status], (error, result) => {
     if (error) {
       console.error('Error executing query:', error);
       res.status(500).json({ error: 'Internal Server Error' });
@@ -816,9 +822,12 @@ app.post('/api/checkin', (req, res) => {
   });
 });
 
+
+
 app.post('/api/checkout', (req, res) => {
   const { licensePlate, userId, locationId } = req.body;
-  const currentTime = new Date();
+  // Lấy thời gian hiện tại ở Việt Nam
+  const currentTime = moment.tz('Asia/Ho_Chi_Minh').format('YYYY-MM-DD HH:mm:ss');
   
   // Kiểm tra xem có xe với license_plate tương ứng và status = false không
   const checkQuery = `
@@ -847,7 +856,7 @@ app.post('/api/checkout', (req, res) => {
           return res.status(500).json({ error: 'Internal Server Error' });
         }
         
-        // Thêm dữ liệu vào bảng transactionhistory
+        // Lấy chi phí của vị trí từ bảng "location"
         const costQuery = `
           SELECT cost FROM location WHERE location_id = $1
         `;
@@ -860,18 +869,33 @@ app.post('/api/checkout', (req, res) => {
           
           const cost = costResult.rows[0].cost;
           
-          const insertQuery = `
-            INSERT INTO transactionhistory (user_id, transaction_type, check_time, amount, tran_time, location)
-            VALUES ($1, 2, $2, $3, $4, $5)
+          // Trừ số tiền từ ví của người dùng
+          const updateWalletQuery = `
+            UPDATE users
+            SET wallet = wallet - $1
+            WHERE user_id = $2
           `;
           
-          pool.query(insertQuery, [userId, checkResult.rows[0].check_id, cost, currentTime, locationId], (insertError, insertResult) => {
-            if (insertError) {
-              console.error('Error executing insert query:', insertError);
+          pool.query(updateWalletQuery, [cost, userId], (walletError, walletResult) => {
+            if (walletError) {
+              console.error('Error updating wallet:', walletError);
               return res.status(500).json({ error: 'Internal Server Error' });
             }
             
-            res.status(200).json({ message: 'Checkout thành công và ghi nhận thông tin vào transactionhistory.' });
+            // Thêm dữ liệu vào bảng "transactionhistory"
+            const insertQuery = `
+              INSERT INTO transactionhistory (user_id, transaction_type, check_time, amount, tran_time, location)
+              VALUES ($1, 2, $2, $3, $4, $5)
+            `;
+            
+            pool.query(insertQuery, [userId, checkResult.rows[0].check_id, cost, currentTime, locationId], (insertError, insertResult) => {
+              if (insertError) {
+                console.error('Error executing insert query:', insertError);
+                return res.status(500).json({ error: 'Internal Server Error' });
+              }
+              
+              res.status(200).json({ message: 'Checkout thành công và trừ tiền từ ví của người dùng.' });
+            });
           });
         });
       });
@@ -880,6 +904,8 @@ app.post('/api/checkout', (req, res) => {
     }
   });
 });
+
+
 
 
 app.listen(3000);
