@@ -805,20 +805,38 @@ app.post('/api/checkin', (req, res) => {
   // Đặt giá trị mặc định cho status
   const status = false;
 
-  // Truy vấn SQL để thêm sự kiện checkin vào bảng checkincheckout
-  const query = `
-    INSERT INTO checkincheckout (license_plate, user_id, checkin_time, status)
-    VALUES ($1, $2, $3, $4)
+  // Truy vấn SQL để kiểm tra sự tồn tại của biển số xe với trạng thái false
+  const checkQuery = `
+    SELECT * FROM checkincheckout WHERE license_plate = $1 AND status = $2
   `;
 
-  // Thực hiện truy vấn SQL với licensePlate, user_id, checkinTime và status
-  pool.query(query, [licensePlate, user_id, checkinTime, status], (error, result) => {
-    if (error) {
-      console.error('Error executing query:', error);
-      res.status(500).json({ error: 'Internal Server Error' });
-    } else {
-      res.status(201).json({ message: 'Checkin thành công' });
+  // Thực hiện truy vấn kiểm tra
+  pool.query(checkQuery, [licensePlate, status], (checkError, checkResult) => {
+    if (checkError) {
+      console.error('Error executing check query:', checkError);
+      return res.status(500).json({ error: 'Internal Server Error' });
     }
+
+    if (checkResult.rows.length > 0) {
+      // Đã tồn tại một bản ghi với license_plate và status false
+      return res.status(409).json({ error: 'Biển số này đã được check-in với trạng thái chưa hoàn thành' });
+    }
+
+    // Truy vấn SQL để thêm sự kiện checkin vào bảng checkincheckout
+    const insertQuery = `
+      INSERT INTO checkincheckout (license_plate, user_id, checkin_time, status)
+      VALUES ($1, $2, $3, $4)
+    `;
+
+    // Thực hiện truy vấn SQL với licensePlate, user_id, checkinTime và status
+    pool.query(insertQuery, [licensePlate, user_id, checkinTime, status], (insertError, insertResult) => {
+      if (insertError) {
+        console.error('Error executing insert query:', insertError);
+        return res.status(500).json({ error: 'Internal Server Error' });
+      }
+
+      res.status(201).json({ message: 'Checkin thành công' });
+    });
   });
 });
 
