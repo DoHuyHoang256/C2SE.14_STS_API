@@ -941,6 +941,30 @@ app.post('/api/checkout', (req, res) => {
   });
 });
 
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    // Truy vấn SQL để lấy danh sách các email từ bảng users với role = 1
+    const queryResult = await pool.query('SELECT email FROM users WHERE role = 1');
+
+    // Lấy danh sách email từ kết quả truy vấn
+    const adminEmails = queryResult.rows.map(row => row.email);
+
+    // Kiểm tra xem email đã đăng nhập có trong danh sách email của admin không
+    if (adminEmails.includes(email)) {
+      // Nếu email đã đăng nhập là email của admin
+      res.json({ success: true, message: 'Đăng nhập thành công', isAdmin: true });
+    } else {
+      // Nếu email đã đăng nhập không phải là email của admin
+      res.json({ success: true, message: 'Đăng nhập thành công', isAdmin: false });
+    }
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
 
 
 app.listen(3000);
