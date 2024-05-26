@@ -298,44 +298,61 @@ app.get('/api/allInfo', (req, res) => {
       }
     });
   });
-  
-  // API endpoint để lấy lịch sử giao dịch của một người dùng dựa trên userId
-  app.get('/api/transaction-history/:userId', (req, res) => {
-    const userId = req.params.userId;
 
-    // Truy vấn cơ sở dữ liệu để lấy thông tin lịch sử giao dịch của người dùng từ userId
-    pool.query(`
-        SELECT 
-            users.full_name,
-            users.wallet,
-            transactionhistory.transaction_id,
-            transactionhistory.user_id,
-            transactionhistory.transaction_type,
-            transactionhistory.check_time,
-            transactionhistory.amount,
-            transactionhistory.tran_time,
-            location.location_name AS location,
-            CASE WHEN transactionhistory.check_time IS NOT NULL THEN checkincheckout.license_plate ELSE NULL END AS license_plate,
-            CASE WHEN transactionhistory.check_time IS NOT NULL THEN checkincheckout.checkin_time ELSE NULL END AS checkin_time,
-            CASE WHEN transactionhistory.check_time IS NOT NULL THEN checkincheckout.checkout_time ELSE NULL END AS checkout_time
-        FROM 
-            users
-        INNER JOIN 
-            transactionhistory ON users.user_id = transactionhistory.user_id
-        INNER JOIN
-            location ON transactionhistory.location = location.location_id
-        LEFT JOIN
-            checkincheckout ON transactionhistory.check_time = checkincheckout.check_id
-        WHERE 
-            users.user_id = $1
-    `, [userId], (error, result) => {
-        if (error) {
-            console.error('Error executing query:', error);
-            res.status(500).json({ error: 'Internal Server Error' });
-        } else {
-            res.json(result.rows);
-        }
-    });
+  // Utility function to format date
+function formatDate(dateString) {
+  if (!dateString) return null;
+  const options = { 
+    day: '2-digit', month: '2-digit', year: 'numeric', 
+    hour: '2-digit', minute: '2-digit', second: '2-digit' 
+  };
+  const date = new Date(dateString);
+  return new Intl.DateTimeFormat('en-GB', options).format(date).replace(',', '');
+}
+  
+  // API endpoint to get transaction history based on userId
+app.get('/api/transaction-history/:userId', (req, res) => {
+  const userId = req.params.userId;
+
+  // Query the database to get transaction history information based on userId
+  pool.query(`
+    SELECT 
+      users.full_name,
+      users.wallet,
+      transactionhistory.transaction_id,
+      transactionhistory.user_id,
+      transactionhistory.transaction_type,
+      transactionhistory.check_time,
+      transactionhistory.amount,
+      transactionhistory.tran_time,
+      location.location_name AS location,
+      CASE WHEN transactionhistory.check_time IS NOT NULL THEN checkincheckout.license_plate ELSE NULL END AS license_plate,
+      CASE WHEN transactionhistory.check_time IS NOT NULL THEN checkincheckout.checkin_time ELSE NULL END AS checkin_time,
+      CASE WHEN transactionhistory.check_time IS NOT NULL THEN checkincheckout.checkout_time ELSE NULL END AS checkout_time
+    FROM 
+      users
+    INNER JOIN 
+      transactionhistory ON users.user_id = transactionhistory.user_id
+    INNER JOIN
+      location ON transactionhistory.location = location.location_id
+    LEFT JOIN
+      checkincheckout ON transactionhistory.check_time = checkincheckout.check_id
+    WHERE 
+      users.user_id = $1
+  `, [userId], (error, result) => {
+    if (error) {
+      console.error('Error executing query:', error);
+      res.status(500).json({ error: 'Internal Server Error' });
+    } else {
+      const formattedResult = result.rows.map(row => ({
+        ...row,
+        tran_time: formatDate(row.tran_time),
+        checkin_time: formatDate(row.checkin_time),
+        checkout_time: formatDate(row.checkout_time)
+      }));
+      res.json(formattedResult);
+    }
+  });
 });
 
   
