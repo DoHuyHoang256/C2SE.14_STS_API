@@ -861,91 +861,86 @@ app.post('/api/checkin', (req, res) => {
 
 app.post('/api/checkout', (req, res) => {
   const { licensePlate, userId, locationId } = req.body;
-  // Lấy thời gian hiện tại ở Việt Nam
   const currentTime = moment.tz('Asia/Ho_Chi_Minh').format('YYYY-MM-DD HH:mm:ss');
-  
-  // Kiểm tra xem có xe với license_plate tương ứng và status = false không
+
   const checkQuery = `
     SELECT * FROM checkincheckout
     WHERE license_plate = $1 AND status = false
   `;
-  
+
   pool.query(checkQuery, [licensePlate], (checkError, checkResult) => {
     if (checkError) {
       console.error('Error executing check query:', checkError);
       return res.status(500).json({ error: 'Internal Server Error' });
     }
-    
-    // Nếu có dòng dữ liệu thỏa mãn điều kiện
+
     if (checkResult.rows.length > 0) {
-      // Lấy chi phí của vị trí từ bảng "location"
       const costQuery = `
         SELECT cost FROM location WHERE location_id = $1
       `;
-      
+
       pool.query(costQuery, [locationId], (costError, costResult) => {
         if (costError) {
           console.error('Error executing cost query:', costError);
           return res.status(500).json({ error: 'Internal Server Error' });
         }
-        
-        const cost = costResult.rows[0].cost;
-        
-        // Kiểm tra số tiền trong ví của người dùng
+
+        const cost = parseFloat(costResult.rows[0].cost);
+        console.log('Cost:', cost); // Debugging log
+
         const walletQuery = `
           SELECT wallet FROM users WHERE user_id = $1
         `;
-        
+
         pool.query(walletQuery, [userId], (walletError, walletResult) => {
           if (walletError) {
             console.error('Error executing wallet query:', walletError);
             return res.status(500).json({ error: 'Internal Server Error' });
           }
-          
-          const wallet = walletResult.rows[0].wallet;
-          
+
+          const wallet = parseFloat(walletResult.rows[0].wallet);
+          console.log('Wallet:', wallet); // Debugging log
+
           if (wallet < cost) {
+            console.log('Insufficient funds:', wallet, cost); // Debugging log
             return res.status(400).json({ error: 'Vui lòng nạp thêm tiền để hoàn thành giao dịch' });
           }
-          
-          // Thực hiện update checkout_time và status trong checkincheckout
+
           const updateQuery = `
             UPDATE checkincheckout
             SET checkout_time = $1, status = true
             WHERE license_plate = $2 AND status = false
           `;
-          
+
           pool.query(updateQuery, [currentTime, licensePlate], (updateError, updateResult) => {
             if (updateError) {
               console.error('Error executing update query:', updateError);
               return res.status(500).json({ error: 'Internal Server Error' });
             }
-            
-            // Trừ số tiền từ ví của người dùng
+
             const updateWalletQuery = `
               UPDATE users
               SET wallet = wallet - $1
               WHERE user_id = $2
             `;
-            
-            pool.query(updateWalletQuery, [cost, userId], (walletError, walletResult) => {
-              if (walletError) {
-                console.error('Error updating wallet:', walletError);
+
+            pool.query(updateWalletQuery, [cost, userId], (walletUpdateError, walletUpdateResult) => {
+              if (walletUpdateError) {
+                console.error('Error updating wallet:', walletUpdateError);
                 return res.status(500).json({ error: 'Internal Server Error' });
               }
-              
-              // Thêm dữ liệu vào bảng "transactionhistory"
+
               const insertQuery = `
                 INSERT INTO transactionhistory (user_id, transaction_type, check_time, amount, tran_time, location)
                 VALUES ($1, 2, $2, $3, $4, $5)
               `;
-              
+
               pool.query(insertQuery, [userId, checkResult.rows[0].check_id, cost, currentTime, locationId], (insertError, insertResult) => {
                 if (insertError) {
                   console.error('Error executing insert query:', insertError);
                   return res.status(500).json({ error: 'Internal Server Error' });
                 }
-                
+
                 res.status(200).json({ message: 'Checkout thành công' });
               });
             });
@@ -957,6 +952,7 @@ app.post('/api/checkout', (req, res) => {
     }
   });
 });
+
 
 app.post('/api/auth/login', async (req, res) => {
   try {
