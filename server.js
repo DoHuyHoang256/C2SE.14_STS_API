@@ -309,8 +309,14 @@ function formatDate(dateString) {
   const date = new Date(dateString);
   return new Intl.DateTimeFormat('en-GB', options).format(date).replace(',', '');
 }
+
+function formatDate(date) {
+  if (!date) return null;
+  const options = { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' };
+  return new Date(date).toLocaleString('vn-VN', options);
+}
+
   
-  // API endpoint to get transaction history based on userId
 app.get('/api/transaction-history/:userId', (req, res) => {
   const userId = req.params.userId;
 
@@ -339,6 +345,8 @@ app.get('/api/transaction-history/:userId', (req, res) => {
       checkincheckout ON transactionhistory.check_time = checkincheckout.check_id
     WHERE 
       users.user_id = $1
+    ORDER BY 
+      transactionhistory.tran_time DESC
   `, [userId], (error, result) => {
     if (error) {
       console.error('Error executing query:', error);
@@ -354,6 +362,7 @@ app.get('/api/transaction-history/:userId', (req, res) => {
     }
   });
 });
+
 
   
   // API endpoint để thêm một transaction mới
