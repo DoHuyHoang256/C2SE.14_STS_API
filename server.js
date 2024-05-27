@@ -824,7 +824,7 @@ app.post('/api/checkin', (req, res) => {
 
   // Kiểm tra xem licensePlate và user_id có tồn tại không
   if (!licensePlate || !user_id) {
-    return res.status(400).json({message: 'Vui lòng cung cấp licensePlate và user_id' });
+    return res.status(400).json({ message: 'Vui lòng cung cấp licensePlate và user_id' });
   }
 
   // Lấy thời gian hiện tại ở Việt Nam
@@ -863,7 +863,7 @@ app.post('/api/checkin', (req, res) => {
         return res.status(500).json({ message: 'Internal Server Error' });
       }
 
-      res.status(201).json({  'Checkin thành công' });
+      res.status(201).json({message: 'Checkin thành công' });
     });
   });
 });
