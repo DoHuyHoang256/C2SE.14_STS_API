@@ -824,7 +824,7 @@ app.post('/api/checkin', (req, res) => {
 
   // Kiểm tra xem licensePlate và user_id có tồn tại không
   if (!licensePlate || !user_id) {
-    return res.status(400).json({ error: 'Vui lòng cung cấp licensePlate và user_id' });
+    return res.status(400).json({message: 'Vui lòng cung cấp licensePlate và user_id' });
   }
 
   // Lấy thời gian hiện tại ở Việt Nam
@@ -842,12 +842,12 @@ app.post('/api/checkin', (req, res) => {
   pool.query(checkQuery, [licensePlate, status], (checkError, checkResult) => {
     if (checkError) {
       console.error('Error executing check query:', checkError);
-      return res.status(500).json({ error: 'Internal Server Error' });
+      return res.status(500).json({ message: 'Internal Server Error' });
     }
 
     if (checkResult.rows.length > 0) {
       // Đã tồn tại một bản ghi với license_plate và status false
-      return res.status(409).json({ error: 'Biển số này đã được check-in với trạng thái chưa hoàn thành' });
+      return res.status(409).json({ message: 'Biển số này đã được check-in với trạng thái chưa hoàn thành' });
     }
 
     // Truy vấn SQL để thêm sự kiện checkin vào bảng checkincheckout
@@ -860,10 +860,10 @@ app.post('/api/checkin', (req, res) => {
     pool.query(insertQuery, [licensePlate, user_id, checkinTime, status], (insertError, insertResult) => {
       if (insertError) {
         console.error('Error executing insert query:', insertError);
-        return res.status(500).json({ error: 'Internal Server Error' });
+        return res.status(500).json({ message: 'Internal Server Error' });
       }
 
-      res.status(201).json({ message: 'Checkin thành công' });
+      res.status(201).json({  'Checkin thành công' });
     });
   });
 });
