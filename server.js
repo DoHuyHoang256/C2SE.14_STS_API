@@ -625,7 +625,8 @@ app.get('/api/total-amount-by-location', (req, res) => {
     INNER JOIN 
       location ON transactionhistory.location = location.location_id
     WHERE 
-      DATE(transactionhistory.tran_time) BETWEEN $1 AND $2
+      transactionhistory.transaction_type = 2
+      AND DATE(transactionhistory.tran_time) BETWEEN $1 AND $2
     GROUP BY 
       location.location_name, DATE(transactionhistory.tran_time)
     ORDER BY 
@@ -652,6 +653,7 @@ app.get('/api/total-amount-by-location', (req, res) => {
     }
   });
 });
+
 
 app.get('/api/user-info/:email', (req, res) => {
   const { email } = req.params;
